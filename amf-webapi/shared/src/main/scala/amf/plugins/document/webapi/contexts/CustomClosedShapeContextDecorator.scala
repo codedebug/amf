@@ -7,9 +7,7 @@ import amf.plugins.document.webapi.contexts.parser.{OasLikeSpecVersionFactory, O
 import amf.plugins.document.webapi.parser.spec.SpecSyntax
 import org.yaml.model.{YMap, YNode, YPart}
 
-class CustomClosedShapeContextDecorator(decorated: OasLikeWebApiContext,
-                                        customSyntax: SpecSyntax,
-                                        severities: Map[String, String])
+class CustomClosedShapeContextDecorator(decorated: OasLikeWebApiContext, customSyntax: Map[String, SpecNode])
     extends OasLikeWebApiContext(
       decorated.loc,
       decorated.refs,
@@ -17,6 +15,7 @@ class CustomClosedShapeContextDecorator(decorated: OasLikeWebApiContext,
       decorated,
       Some(decorated.declarations)
     ) {
+
   override val syntax: SpecSyntax = decorated.syntax
   override val vendor: Vendor     = decorated.vendor
 
@@ -28,17 +27,64 @@ class CustomClosedShapeContextDecorator(decorated: OasLikeWebApiContext,
 
   override def makeCopy(): OasLikeWebApiContext = decorated.makeCopy()
 
-  override def specificClosedShape(node: String, shape: String, ast: YMap): Unit =
-    closedShape(node, ast, shape, customSyntax)
-
-  override protected def throwClosedShapeError(shape: String,
-                                               node: String,
-                                               message: String,
-                                               entry: YPart,
-                                               isWarning: Boolean): Unit = {
-    val severity  = severities.getOrElse(shape, SeverityLevels.VIOLATION)
-    val isWarning = severity == SeverityLevels.WARNING
-    super.throwClosedShapeError(shape, node, message, entry, isWarning)
+  override def closedShape(node: String, ast: YMap, shape: String): Unit = {
+    syntax.nodes.get(shape) match {
+      case Some(properties) =>
+        ast.entries.foreach { entry =>
+          val key: String = entry.key.asScalar.map(_.text).getOrElse(entry.key.toString)
+          if (ignore(shape, key)) {
+            // annotation or path in endpoint/webapi => ignore
+          } else if (!properties(key)) {
+            throwClosedShapeError(shape, node, s"Property '$key' not supported in a $vendor $shape node", entry)
+          }
+        }
+      case None =>
+        if (customSyntax.contains(shape)) {
+          val entries = ast.entries.map { entry =>
+            entry.key.asScalar.map(_.text).getOrElse(entry.key.toString)
+          }
+          checkRequired(node, ast, shape, entries)
+        } else specificClosedShape(node, shape, ast)
+    }
   }
 
+  private def checkRequired(node: String, ast: YMap, shape: String, entries: Seq[String]): Unit = {
+    if (customSyntax.contains(shape)) {
+      val specNode             = customSyntax(shape)
+      val (required, possible) = (specNode.requiredFields, specNode.possibleFields)
+
+      // if entries don't contain required fields
+      required.foreach { field =>
+        if (!entries.contains(field.name)) {
+          val isWarning = field.severity == SeverityLevels.WARNING
+          throwClosedShapeError(shape,
+                                node,
+                                s"Property '${field.name}' is required in a $vendor $shape node",
+                                ast,
+                                isWarning)
+        }
+      }
+
+      // if invalid fields are present
+      entries.foreach(entry => {
+        if (!possible.contains(entry) && !required.map(_.name).contains(entry)) {
+          throwClosedShapeError(shape,
+                                node,
+                                s"Property '$entry' not supported in a $vendor $shape node",
+                                getAstEntry(ast, entry),
+                                isWarning = true)
+        }
+      })
+    }
+  }
+
+  private def getAstEntry(ast: YMap, entry: String): YPart =
+    ast.entries.find(yMapEntry => yMapEntry.key.asScalar.map(_.text).get == entry).get
 }
+
+case class SpecNode(
+    requiredFields: Set[SpecField] = Set(),
+    possibleFields: Set[String] = Set()
+)
+
+case class SpecField(name: String, severity: String = SeverityLevels.VIOLATION)
