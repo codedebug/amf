@@ -6,6 +6,7 @@ import amf.core.remote.Vendor
 import amf.plugins.domain.shapes.models.Example
 import amf.plugins.domain.webapi.models._
 import amf.plugins.domain.webapi.models.bindings.{ChannelBindings, MessageBindings, OperationBindings, ServerBindings}
+import amf.plugins.domain.webapi.models.templates.{ResourceType, Trait}
 
 trait DomainElementEmitterFactory {
 
@@ -24,6 +25,9 @@ trait DomainElementEmitterFactory {
     case o: OperationBindings => operationBindingsEmitter(o)
     case c: ChannelBindings   => channelBindingsEmitter(c)
     case s: ServerBindings    => serverBindingsEmitter(s)
+    case t: Trait             => traitEmitter(t)
+    case r: ResourceType      => resourceTypeEmitter(r)
+    case o: Operation         => operationEmitter(o)
     case _                    => None
   }
 
@@ -41,6 +45,9 @@ trait DomainElementEmitterFactory {
   def operationBindingsEmitter(o: OperationBindings): Option[PartEmitter] = None
   def channelBindingsEmitter(c: ChannelBindings): Option[PartEmitter]     = None
   def serverBindingsEmitter(s: ServerBindings): Option[PartEmitter]       = None
+  def traitEmitter(t: Trait): Option[PartEmitter]                         = None
+  def resourceTypeEmitter(t: ResourceType): Option[PartEmitter]           = None
+  def operationEmitter(o: Operation): Option[PartEmitter]                 = None
 }
 
 object DomainElementEmitterFactory {

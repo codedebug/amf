@@ -8,9 +8,10 @@ import amf.plugins.document.webapi.parser.spec.async.emitters.{
   AsyncApiBindingsPartEmitter,
   AsyncApiCorrelationIdContentEmitter,
   AsyncApiMessageContentEmitter,
-  AsyncApiSingleParameterPartEmitter
+  AsyncApiSingleParameterPartEmitter,
+  AsyncOperationPartEmitter
 }
-import amf.plugins.domain.webapi.models.{CorrelationId, Message, Parameter, Request, Response}
+import amf.plugins.domain.webapi.models.{CorrelationId, Message, Operation, Parameter, Request, Response}
 import amf.plugins.domain.webapi.models.bindings.{ChannelBindings, MessageBindings, OperationBindings, ServerBindings}
 
 object AsyncEmitterFactory extends OasLikeEmitterFactory {
@@ -21,8 +22,10 @@ object AsyncEmitterFactory extends OasLikeEmitterFactory {
     Some(AsyncApiSingleParameterPartEmitter(p, SpecOrdering.Lexical))
 
   override def messageEmitter(m: Message): Option[PartEmitter] =
-    // if message is a trait it will not have certain fields that simply wont be emitted.
-    Some(new AsyncApiMessageContentEmitter(m, isTrait = false, SpecOrdering.Lexical))
+    Some(new AsyncApiMessageContentEmitter(m, isTrait = m.isAbstract.option().getOrElse(false), SpecOrdering.Lexical))
+
+  override def operationEmitter(o: Operation): Option[PartEmitter] =
+    Some(AsyncOperationPartEmitter(o, isTrait = o.isAbstract.option().getOrElse(false), SpecOrdering.Lexical))
 
   override def requestEmitter(r: Request): Option[PartEmitter] = messageEmitter(r)
 
