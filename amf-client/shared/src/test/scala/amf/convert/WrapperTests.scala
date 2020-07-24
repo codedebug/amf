@@ -1875,10 +1875,10 @@ trait WrapperTests extends MultiJsonldAsyncFunSuite with Matchers with NativeOps
                         |      "additionalProperties": true,
                         |      "properties": {
                         |        "c1": {
-                        |          "type": "array",
                         |          "items": {
                         |            "$ref": "#/definitions/A"
-                        |          }
+                        |          },
+                        |          "type": "array"
                         |        }
                         |      }
                         |    },
@@ -1891,10 +1891,10 @@ trait WrapperTests extends MultiJsonldAsyncFunSuite with Matchers with NativeOps
                         |          "additionalProperties": true,
                         |          "properties": {
                         |            "c1": {
-                        |              "type": "array",
                         |              "items": {
                         |                "$ref": "#/definitions/A"
-                        |              }
+                        |              },
+                        |              "type": "array"
                         |            }
                         |          }
                         |        }
