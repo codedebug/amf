@@ -1,7 +1,7 @@
 package amf.plugins.document.webapi.parser.spec.common.emitters.factory
 
 import amf.core.emitter.{PartEmitter, SpecOrdering}
-import amf.core.errorhandling.UnhandledErrorHandler
+import amf.core.errorhandling.{ErrorHandler, UnhandledErrorHandler}
 import amf.core.model.domain.DomainElement
 import amf.plugins.document.webapi.contexts.emitter.async.Async20SpecEmitterContext
 import amf.plugins.document.webapi.parser.spec.async.emitters.{
@@ -14,9 +14,7 @@ import amf.plugins.document.webapi.parser.spec.async.emitters.{
 import amf.plugins.domain.webapi.models.{CorrelationId, Message, Operation, Parameter, Request, Response}
 import amf.plugins.domain.webapi.models.bindings.{ChannelBindings, MessageBindings, OperationBindings, ServerBindings}
 
-object AsyncEmitterFactory extends OasLikeEmitterFactory {
-  // TODO ajust error handler
-  implicit val ctx: Async20SpecEmitterContext = new Async20SpecEmitterContext(UnhandledErrorHandler)
+case class AsyncEmitterFactory()(implicit val ctx: Async20SpecEmitterContext) extends OasLikeEmitterFactory {
 
   override def parameterEmitter(p: Parameter): Option[PartEmitter] =
     Some(AsyncApiSingleParameterPartEmitter(p, SpecOrdering.Lexical))
@@ -44,5 +42,9 @@ object AsyncEmitterFactory extends OasLikeEmitterFactory {
 
   private def bindingsEmitter(element: DomainElement): Option[PartEmitter] =
     Some(AsyncApiBindingsPartEmitter(element, SpecOrdering.Lexical, Nil))
+}
+
+object AsyncEmitterFactory {
+  def apply(eh: ErrorHandler): AsyncEmitterFactory = AsyncEmitterFactory()(new Async20SpecEmitterContext(eh))
 
 }
